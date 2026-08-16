@@ -3,8 +3,13 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Play, Info } from 'lucide-react';
+import { Play, Info, Star } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
+
+const GENRE_MAP: Record<number, string> = {
+  28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime', 99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History', 27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Science Fiction', 10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western',
+  10759: 'Action & Adventure', 10762: 'Kids', 10763: 'News', 10764: 'Reality', 10765: 'Sci-Fi & Fantasy', 10766: 'Soap', 10767: 'Talk', 10768: 'War & Politics'
+};
 
 export default function HeroSlider({ items }: { items: any[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -32,7 +37,24 @@ export default function HeroSlider({ items }: { items: any[] }) {
         const title = item.title || item.name;
         const type = item.media_type || (item.name ? 'tv' : 'movie');
         const overview = item.overview;
-        const year = (item.release_date || item.first_air_date) ? new Date(item.release_date || item.first_air_date).getFullYear() : '';
+        
+        const rating = item.vote_average ? item.vote_average.toFixed(1) : 'NR';
+        const dateStr = item.release_date || item.first_air_date;
+        let formattedDate = '';
+        if (dateStr) {
+          const parts = dateStr.split('-');
+          if (parts.length === 3) {
+            const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          } else {
+            formattedDate = dateStr;
+          }
+        }
+        
+        let itemGenres = [];
+        if (item.genre_ids) {
+          itemGenres = item.genre_ids.map((id: number) => GENRE_MAP[id]).filter(Boolean).slice(0, 2);
+        }
         
         return (
           <div
@@ -69,17 +91,9 @@ export default function HeroSlider({ items }: { items: any[] }) {
                   isActive && isMounted ? 'translate-y-0 opacity-100 delay-300' : 'translate-y-8 opacity-0'
                 }`}
               >
-                {/* Meta details */}
-                <div className="flex items-center gap-3 mb-3 text-sm font-semibold tracking-wide text-white/70 uppercase">
-                  <span className="bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-sm text-white">
-                    {type === 'tv' ? 'TV Series' : 'Movie'}
-                  </span>
-                  {year && <span>{year}</span>}
-                </div>
-
                 {/* Title or Logo */}
                 {item.logo_path ? (
-                  <div className="relative w-64 md:w-80 h-20 md:h-28 mb-6 drop-shadow-lg">
+                  <div className="relative w-64 md:w-80 h-20 md:h-28 mb-3 drop-shadow-lg">
                     <Image
                       src={getImageUrl(item.logo_path, 'original')}
                       alt={title}
@@ -89,10 +103,26 @@ export default function HeroSlider({ items }: { items: any[] }) {
                     />
                   </div>
                 ) : (
-                  <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-4 line-clamp-2 drop-shadow-lg">
+                  <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2 line-clamp-2 drop-shadow-lg">
                     {title}
                   </h2>
                 )}
+
+                {/* Meta details (Rating • Date • Genres) */}
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 text-[14px] md:text-[15px] font-medium text-white/90 drop-shadow-md">
+                  <div className="flex items-center gap-1.5 text-white">
+                    <Star className="w-4 h-4 fill-current text-yellow-400" />
+                    <span>{rating}</span>
+                  </div>
+                  {formattedDate && <span className="text-white/60">•</span>}
+                  {formattedDate && <span>{formattedDate}</span>}
+                  {itemGenres.map((genre: string) => (
+                    <span key={genre} className="flex items-center gap-2 md:gap-3">
+                      <span className="text-white/60">•</span>
+                      <span>{genre}</span>
+                    </span>
+                  ))}
+                </div>
 
                 {/* Overview */}
                 <p className="text-white/80 text-base md:text-lg line-clamp-2 md:line-clamp-3 mb-8 max-w-xl text-shadow-sm font-medium">
