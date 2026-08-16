@@ -24,7 +24,7 @@ export default function FreeToWatchRow({
 
   return (
     <div className="mb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-6 px-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-6">
         <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white drop-shadow-sm">
           Free To Watch
         </h2>

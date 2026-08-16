@@ -97,7 +97,7 @@ export default function LatestTrailersRow({
       </div>
 
       <div className="relative z-10">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-8 px-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-8">
           <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white drop-shadow-md">
             Latest Trailers
           </h2>
@@ -126,7 +126,7 @@ export default function LatestTrailersRow({
           </div>
         </div>
         
-        <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-8 pt-2 hide-scrollbar">
+        <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-8 pt-2 -mx-4 px-4 md:-mx-8 md:px-8 hide-scrollbar">
           {trailerItems.map((item: any, index: number) => (
             <div 
               key={item.id} 

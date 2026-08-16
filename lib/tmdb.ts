@@ -89,6 +89,11 @@ export async function getMediaVideos(id: string | number, type: 'movie' | 'tv' =
   return fetchTMDB(`/${type}/${id}/videos`);
 }
 
+export async function getSeasonDetails(tvId: string | number, seasonNumber: number) {
+  return fetchTMDB(`/tv/${tvId}/season/${seasonNumber}`);
+}
+
+
 export async function getMovieDetails(id: string) {
   // append_to_response allows us to fetch related data in a single request!
   return fetchTMDB(`/movie/${id}`, { 

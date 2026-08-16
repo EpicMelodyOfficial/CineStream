@@ -4,6 +4,7 @@ import { getImageUrl } from '@/lib/tmdb';
 import { ArrowLeft, ExternalLink, Star, User } from 'lucide-react';
 import PlayTrailerButton from './PlayTrailerButton';
 import MovieCard from './MovieCard';
+import TVSeasons from './TVSeasons';
 
 export default function MediaDetail({ media, type }: { media: any, type: 'movie' | 'tv' }) {
   const title = type === 'movie' ? media.title : media.name;
@@ -50,26 +51,43 @@ export default function MediaDetail({ media, type }: { media: any, type: 'movie'
   const providers = providersData['US'] || Object.values(providersData)[0];
 
   return (
-    <main className="relative min-h-screen bg-[#050505] text-white selection:bg-white/30 pb-32 overflow-hidden">
+    <main className="relative min-h-screen bg-black text-white selection:bg-white/30 pb-32">
       
-      {/* Ambient Blur Background */}
+      {/* 1. Ambient Glassy Blur Background */}
       {media.backdrop_path && (
         <div className="fixed inset-0 z-0 pointer-events-none">
           <Image
             src={getImageUrl(media.backdrop_path, 'original')}
             alt="ambient"
             fill
-            className="object-cover opacity-[0.15] blur-[100px] scale-110 saturate-[1.2]"
+            className="object-cover opacity-50 blur-[100px] saturate-[1.5]"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-2xl" />
+        </div>
+      )}
+
+      {/* 2. Hero Backdrop Image (Top Section) */}
+      {media.backdrop_path && (
+        <div 
+          className="absolute top-0 left-0 w-full h-[50vh] md:h-[70vh] z-0 pointer-events-none"
+          style={{
+            maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)'
+          }}
+        >
+          <Image
+            src={getImageUrl(media.backdrop_path, 'original')}
+            alt="Hero Backdrop"
+            fill
+            className="object-cover opacity-80"
             priority
           />
         </div>
       )}
 
-      {/* Header Fade Overlay */}
-      <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#050505]/40 via-[#050505]/80 to-[#050505] pointer-events-none" />
-
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-4 md:px-8 pt-8 md:pt-16 max-w-[1400px]">
+      <div className="relative z-10 container mx-auto px-4 md:px-8 pt-8 md:pt-[20vh] max-w-[1400px]">
         
         {/* Navigation */}
         <Link 
@@ -261,6 +279,11 @@ export default function MediaDetail({ media, type }: { media: any, type: 'movie'
                    ))}
                  </div>
                </div>
+             )}
+
+             {/* TV Seasons */}
+             {type === 'tv' && media.seasons?.length > 0 && (
+               <TVSeasons seasons={media.seasons} tvId={media.id} />
              )}
 
              {/* Recommendations */}

@@ -15,7 +15,7 @@ function MediaRow({ title, items }: { title: string, items: any[] }) {
   
   return (
     <div className="mb-12">
-      <div className="flex items-center justify-between mb-6 px-1">
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white drop-shadow-sm">
           {title}
         </h2>
