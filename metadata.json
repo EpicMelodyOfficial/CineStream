@@ -1,0 +1,6 @@
+{
+  "name": "CineStream Reviews",
+  "description": "Movie ratings, reviews, and streaming provider information powered by TMDB.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

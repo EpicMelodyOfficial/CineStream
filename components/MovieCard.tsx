@@ -1,0 +1,54 @@
+import Image from 'next/image';
+import Link from 'next/link';
+import { Star } from 'lucide-react';
+import { getImageUrl } from '@/lib/tmdb';
+
+interface Media {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  release_date?: string;
+  first_air_date?: string;
+  vote_average: number;
+  media_type?: 'movie' | 'tv' | 'person';
+}
+
+export default function MovieCard({ movie }: { movie: Media }) {
+  const title = movie.title || movie.name || 'Unknown';
+  const dateStr = movie.release_date || movie.first_air_date;
+  const year = dateStr ? new Date(dateStr).getFullYear() : 'N/A';
+  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
+  const type = movie.media_type || (movie.name ? 'tv' : 'movie');
+
+  // Do not render people
+  if (movie.media_type === 'person') return null;
+
+  return (
+    <Link href={`/${type}/${movie.id}`} className="group flex flex-col gap-3">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-[#1c1c1e] transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-white/5">
+        <Image
+          src={getImageUrl(movie.poster_path)}
+          alt={title}
+          fill
+          referrerPolicy="no-referrer"
+          className="object-cover transition-transform duration-500"
+          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+        />
+      </div>
+      
+      <div className="flex flex-col gap-1 px-1">
+        <h3 className="line-clamp-1 text-[15px] font-semibold tracking-tight text-white transition-colors">
+          {title}
+        </h3>
+        <div className="flex items-center justify-between text-[13px] text-gray-400 font-medium">
+          <span>{year}</span>
+          <div className="flex items-center gap-1">
+            <Star className="h-3.5 w-3.5 fill-current text-white" />
+            <span>{rating}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
