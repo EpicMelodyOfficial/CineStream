@@ -17,12 +17,10 @@ export default function PlayTrailerButton({ videos }: { videos: any[] }) {
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 text-white hover:text-gray-300 transition-colors font-semibold group"
+        className="w-full flex items-center justify-center gap-2.5 bg-white text-black hover:bg-gray-200 transition-colors py-4 px-6 rounded-xl font-bold text-[15px] shadow-lg hover:scale-[1.02] active:scale-[0.98]"
       >
-        <div className="flex items-center justify-center w-12 h-12 bg-black/30 rounded-full border border-white/20 group-hover:bg-black/50 transition-colors">
-          <Play className="w-5 h-5 ml-1 fill-current" />
-        </div>
-        Play Trailer
+        <Play className="w-5 h-5 fill-current" />
+        Watch Trailer
       </button>
 
       {isOpen && (

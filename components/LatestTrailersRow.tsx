@@ -74,7 +74,7 @@ export default function LatestTrailersRow({
   return (
     <div className="relative mb-12 -mx-4 md:-mx-8 px-4 md:px-8 py-10 transition-colors duration-500 overflow-hidden">
       {/* Dynamic Background with transition */}
-      <div className="absolute inset-0 z-0 bg-[#0d253f]">
+      <div className="absolute inset-0 z-0 bg-black">
         {trailerItems.map((item, index) => (
           <div 
             key={`${activeTab}-${item.id}`}
@@ -84,12 +84,14 @@ export default function LatestTrailersRow({
               src={getImageUrl(item.backdrop_path, 'original')}
               alt={item.title || item.name || 'Trailer Background'}
               fill
-              className="object-cover opacity-30"
+              className="object-cover opacity-60 md:opacity-70 saturate-[1.1] transition-all duration-700"
               referrerPolicy="no-referrer"
             />
             {/* Gradient overlay to blend with the page */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#04152d] via-transparent to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0d253f] via-transparent to-transparent opacity-80" />
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black via-black/20 to-transparent" />
+            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-black to-transparent" />
+            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-black to-transparent" />
           </div>
         ))}
       </div>
@@ -101,7 +103,7 @@ export default function LatestTrailersRow({
           </h2>
           
           {/* Toggle Switch */}
-          <div className="inline-flex items-center rounded-full border border-[#1ed5a9]/50 p-0.5 bg-[#0d253f]/80 backdrop-blur-md self-start sm:self-auto overflow-x-auto hide-scrollbar max-w-full">
+          <div className="inline-flex items-center rounded-full border border-white/20 p-0.5 bg-white/5 backdrop-blur-md self-start sm:self-auto overflow-x-auto hide-scrollbar max-w-full">
             {[
               { id: 'popular', label: 'Popular' },
               { id: 'streaming', label: 'Streaming' },
@@ -114,7 +116,7 @@ export default function LatestTrailersRow({
                 onClick={() => { setActiveTab(tab.id as TabType); setHoveredIndex(null); }}
                 className={`px-4 sm:px-5 py-1.5 text-[13px] sm:text-[14px] font-semibold rounded-full transition-all duration-300 whitespace-nowrap ${
                   activeTab === tab.id 
-                    ? 'bg-[#1ed5a9] text-[#0d253f] shadow-sm'
+                    ? 'bg-white text-black shadow-sm'
                     : 'text-white/70 hover:text-white'
                 }`}
               >

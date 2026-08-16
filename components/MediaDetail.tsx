@@ -1,27 +1,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { getImageUrl } from '@/lib/tmdb';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Star, User } from 'lucide-react';
 import PlayTrailerButton from './PlayTrailerButton';
 import MovieCard from './MovieCard';
 
 export default function MediaDetail({ media, type }: { media: any, type: 'movie' | 'tv' }) {
   const title = type === 'movie' ? media.title : media.name;
-  const originalTitle = type === 'movie' ? media.original_title : media.original_name;
   const releaseDateStr = type === 'movie' ? media.release_date : media.first_air_date;
   const year = releaseDateStr ? new Date(releaseDateStr).getFullYear() : '';
-  
-  // Format Date: MM/DD/YYYY
-  let formattedDate = '';
-  if (releaseDateStr) {
-    const parts = releaseDateStr.split('-');
-    if (parts.length === 3) {
-      const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      formattedDate = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-    } else {
-      formattedDate = releaseDateStr;
-    }
-  }
 
   // Runtime
   const runtime = type === 'movie' ? media.runtime : (media.episode_run_time?.[0] || 0);
@@ -29,19 +16,15 @@ export default function MediaDetail({ media, type }: { media: any, type: 'movie'
   const runtimeMins = runtime ? runtime % 60 : 0;
   const runtimeStr = runtime > 0 ? `${runtimeHours > 0 ? `${runtimeHours}h ` : ''}${runtimeMins}m` : '';
 
-  // User Score
-  const score = media.vote_average ? Math.round(media.vote_average * 10) : 0;
-  let scoreColor = 'border-green-500 text-green-500';
-  if (score < 70 && score >= 40) scoreColor = 'border-yellow-500 text-yellow-500';
-  if (score < 40) scoreColor = 'border-red-500 text-red-500';
+  // User Score (e.g., 8.5)
+  const score = media.vote_average ? media.vote_average.toFixed(1) : 'NR';
 
   // Crew (Directors or Creators)
-  let keyPeople = [];
+  let keyPeople: { name: string; jobs: string[] }[] = [];
   if (type === 'movie' && media.credits?.crew) {
-    keyPeople = media.credits.crew.filter((c: any) => c.job === 'Director' || c.job === 'Writer').slice(0, 3);
-    // deduplicate
+    const rawCrew = media.credits.crew.filter((c: any) => c.job === 'Director' || c.job === 'Writer').slice(0, 4);
     const unique = new Map();
-    for (const person of keyPeople) {
+    for (const person of rawCrew) {
       if (!unique.has(person.id)) {
         unique.set(person.id, { name: person.name, jobs: [person.job] });
       } else {
@@ -63,232 +46,239 @@ export default function MediaDetail({ media, type }: { media: any, type: 'movie'
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
   };
 
-  // Keywords
-  const keywordsData = type === 'movie' ? media.keywords?.keywords : media.keywords?.results;
-  const keywords = keywordsData || [];
+  const providersData = media['watch/providers']?.results || {};
+  const providers = providersData['US'] || Object.values(providersData)[0];
 
   return (
-    <main className="bg-white dark:bg-[#0d253f] min-h-screen text-black dark:text-white pb-20">
-      {/* Back Button (Floating) */}
-      <div className="absolute top-4 left-4 z-50 md:hidden">
-        <Link href="/" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/50 text-white backdrop-blur-md">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-      </div>
-
-      {/* Hero / Banner Section */}
-      <div className="relative w-full bg-black overflow-hidden flex items-center border-b border-gray-800 dark:border-white/10" style={{ minHeight: '600px' }}>
-        {/* Backdrop Background */}
-        {media.backdrop_path && (
-          <div className="absolute inset-0 z-0">
-            <Image
-              src={getImageUrl(media.backdrop_path, 'original')}
-              alt={title}
-              fill
-              className="object-cover opacity-30 md:opacity-50"
-              priority
-            />
-            {/* TMDB Style Gradient Overlay (darker on the left) */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent hidden md:block" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent md:hidden" />
-          </div>
-        )}
-
-        {/* Content Container */}
-        <div className="relative z-10 container mx-auto px-4 py-8 md:py-16 max-w-7xl mt-12 md:mt-0">
-          <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center md:items-start">
-            
-            {/* Poster */}
-            <div className="w-64 md:w-[300px] shrink-0 rounded-xl overflow-hidden shadow-2xl relative z-10 border border-white/10">
-              <Image
-                src={getImageUrl(media.poster_path)}
-                alt={title}
-                width={300}
-                height={450}
-                className="w-full h-auto object-cover"
-                priority
-              />
-            </div>
-
-            {/* Details */}
-            <div className="flex-1 flex flex-col justify-center text-center md:text-left mt-4 md:mt-10">
-              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
-                {title} <span className="font-normal opacity-70">({year})</span>
-              </h1>
-              
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-4 mt-2 text-sm md:text-base text-gray-300">
-                {formattedDate && <span>{formattedDate} (US)</span>}
-                {formattedDate && <span className="hidden md:inline">•</span>}
-                {media.genres && media.genres.length > 0 && (
-                  <span>{media.genres.map((g: any) => g.name).join(', ')}</span>
-                )}
-                {runtimeStr && <span className="hidden md:inline">•</span>}
-                {runtimeStr && <span>{runtimeStr}</span>}
-              </div>
-
-              {/* Actions Row */}
-              <div className="flex items-center justify-center md:justify-start gap-6 mt-8 mb-6">
-                <div className="flex items-center gap-2">
-                  <div className={`flex items-center justify-center w-16 h-16 rounded-full bg-black/50 border-4 ${scoreColor} backdrop-blur-md`}>
-                    <span className="text-xl font-bold text-white">{score > 0 ? `${score}%` : 'NR'}</span>
-                  </div>
-                  <span className="font-bold text-white leading-tight w-12">User<br/>Score</span>
-                </div>
-                
-                {media.videos?.results && (
-                  <PlayTrailerButton videos={media.videos.results} />
-                )}
-              </div>
-
-              {media.tagline && (
-                <div className="text-lg italic text-gray-400 mt-2 mb-4 font-serif">
-                  {media.tagline}
-                </div>
-              )}
-
-              <div className="mt-2">
-                <h3 className="text-xl font-semibold text-white mb-2">Overview</h3>
-                <p className="text-gray-200 leading-relaxed max-w-3xl">
-                  {media.overview || 'No overview available.'}
-                </p>
-              </div>
-
-              {keyPeople.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-8">
-                  {keyPeople.map((person: any, idx: number) => (
-                    <div key={idx}>
-                      <p className="font-bold text-white">{person.name}</p>
-                      <p className="text-sm text-gray-400">{person.jobs.join(', ')}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+    <main className="relative min-h-screen bg-[#050505] text-white selection:bg-white/30 pb-32 overflow-hidden">
+      
+      {/* Ambient Blur Background */}
+      {media.backdrop_path && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <Image
+            src={getImageUrl(media.backdrop_path, 'original')}
+            alt="ambient"
+            fill
+            className="object-cover opacity-[0.15] blur-[100px] scale-110 saturate-[1.2]"
+            priority
+          />
         </div>
-      </div>
+      )}
 
-      {/* Two Column Body Layout */}
-      <div className="container mx-auto px-4 py-10 max-w-7xl flex flex-col md:flex-row gap-8">
+      {/* Header Fade Overlay */}
+      <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#050505]/40 via-[#050505]/80 to-[#050505] pointer-events-none" />
+
+      {/* Main Content */}
+      <div className="relative z-10 container mx-auto px-4 md:px-8 pt-8 md:pt-16 max-w-[1400px]">
         
-        {/* Main Content (Left) */}
-        <div className="flex-1 overflow-hidden">
+        {/* Navigation */}
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-8 md:mb-16 font-medium text-[13px] uppercase tracking-widest"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Browse
+        </Link>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
           
-          {/* Top Billed Cast */}
-          <section className="mb-10">
-            <h3 className="text-2xl font-bold mb-6 text-black dark:text-white">Top Billed Cast</h3>
-            <div className="flex gap-4 overflow-x-auto pb-6 snap-x -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar">
-              {cast.length > 0 ? cast.map((actor: any) => (
-                <div key={actor.id} className="w-[140px] shrink-0 bg-white dark:bg-[#1c1c1e] rounded-lg shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden snap-start">
-                  <div className="h-[200px] w-full bg-gray-200 dark:bg-gray-800 relative">
-                    {actor.profile_path ? (
-                      <Image
-                        src={getImageUrl(actor.profile_path, 'w500')}
-                        alt={actor.name}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-gray-400">
-                        No Image
+          {/* LEFT COLUMN - Sticky Sidebar */}
+          <div className="lg:col-span-4 xl:col-span-3 order-2 lg:order-1">
+            <div className="lg:sticky lg:top-12 space-y-8">
+              
+              {/* Poster Frame */}
+              <div className="relative aspect-[2/3] w-[60%] md:w-[45%] lg:w-full mx-auto overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl bg-white/5">
+                <Image
+                  src={getImageUrl(media.poster_path, 'w500')}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 border border-white/10 rounded-2xl pointer-events-none" />
+              </div>
+
+              {/* Action Button */}
+              {media.videos?.results && (
+                <PlayTrailerButton videos={media.videos.results} />
+              )}
+
+              {/* Watch Providers (Stream) */}
+              {providers?.flatrate && (
+                <div className="bg-white/[0.03] backdrop-blur-md border border-white/5 rounded-2xl p-6">
+                  <p className="text-white/40 text-[11px] font-bold uppercase tracking-widest mb-4">Stream Now On</p>
+                  <div className="flex flex-wrap gap-3">
+                    {providers.flatrate.map((p: any) => (
+                      <div key={p.provider_id} className="w-12 h-12 rounded-xl overflow-hidden ring-1 ring-white/10" title={p.provider_name}>
+                        <Image src={getImageUrl(p.logo_path, 'w500')} alt={p.provider_name} width={48} height={48} className="object-cover" />
                       </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="font-bold text-[15px] leading-tight text-black dark:text-white">{actor.name}</p>
-                    <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1">{actor.character}</p>
+                    ))}
                   </div>
                 </div>
-              )) : (
-                <p className="text-gray-500">No cast information available.</p>
               )}
-            </div>
-            {/* Note: In a full app, we might link to "Full Cast & Crew" */}
-          </section>
 
-          <hr className="border-gray-200 dark:border-gray-800 my-8" />
+              {/* Quick Facts Bento Box */}
+              <div className="bg-white/[0.03] backdrop-blur-md border border-white/5 rounded-2xl p-6 space-y-6">
+                 <div>
+                   <p className="text-white/40 text-[11px] font-bold uppercase tracking-widest mb-1.5">Status</p>
+                   <p className="font-medium text-white/90 text-[15px]">{media.status || '-'}</p>
+                 </div>
+                 
+                 <div>
+                   <p className="text-white/40 text-[11px] font-bold uppercase tracking-widest mb-1.5">Original Language</p>
+                   <p className="font-medium text-white/90 text-[15px] uppercase">{media.original_language || '-'}</p>
+                 </div>
 
-          {/* Recommendations */}
-          <section className="mb-10">
-            <h3 className="text-2xl font-bold mb-6 text-black dark:text-white">Recommendations</h3>
-            <div className="flex gap-4 overflow-x-auto pb-6 snap-x -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar">
-              {recommendations.length > 0 ? recommendations.map((item: any) => (
-                <div key={item.id} className="w-[180px] shrink-0 snap-start">
-                  {/* TMDB recommendations usually use backdrop_path instead of poster, but we can reuse MovieCard which handles it well */}
-                  <MovieCard movie={item} />
-                </div>
-              )) : (
-                <p className="text-gray-500">No recommendations available.</p>
-              )}
-            </div>
-          </section>
-        </div>
+                 {type === 'movie' && (
+                   <>
+                     <div>
+                       <p className="text-white/40 text-[11px] font-bold uppercase tracking-widest mb-1.5">Budget</p>
+                       <p className="font-medium text-white/90 text-[15px]">{formatMoney(media.budget)}</p>
+                     </div>
+                     <div>
+                       <p className="text-white/40 text-[11px] font-bold uppercase tracking-widest mb-1.5">Revenue</p>
+                       <p className="font-medium text-white/90 text-[15px]">{formatMoney(media.revenue)}</p>
+                     </div>
+                   </>
+                 )}
 
-        {/* Sidebar (Right) */}
-        <div className="w-full md:w-[260px] shrink-0 mt-8 md:mt-0">
-          <div className="space-y-6 text-[15px]">
-            
-            {media.homepage && (
-              <a href={media.homepage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-blue-600 dark:text-[#1ed5a9] hover:underline font-medium">
-                <ExternalLink className="w-4 h-4" />
-                Visit Homepage
-              </a>
-            )}
+                 {type === 'tv' && media.networks?.length > 0 && (
+                   <div>
+                     <p className="text-white/40 text-[11px] font-bold uppercase tracking-widest mb-3">Network</p>
+                     <div className="bg-white p-2 rounded-lg inline-block">
+                       <Image src={getImageUrl(media.networks[0].logo_path, 'w500')} alt={media.networks[0].name} width={80} height={30} className="object-contain h-6 w-auto" />
+                     </div>
+                   </div>
+                 )}
 
-            <div>
-              <p className="font-bold text-black dark:text-white">Status</p>
-              <p className="text-gray-700 dark:text-gray-300">{media.status || '-'}</p>
-            </div>
-            
-            <div>
-              <p className="font-bold text-black dark:text-white">Original Language</p>
-              <p className="text-gray-700 dark:text-gray-300 uppercase">{media.original_language || '-'}</p>
-            </div>
-
-            {type === 'movie' && (
-              <>
-                <div>
-                  <p className="font-bold text-black dark:text-white">Budget</p>
-                  <p className="text-gray-700 dark:text-gray-300">{formatMoney(media.budget)}</p>
-                </div>
-                <div>
-                  <p className="font-bold text-black dark:text-white">Revenue</p>
-                  <p className="text-gray-700 dark:text-gray-300">{formatMoney(media.revenue)}</p>
-                </div>
-              </>
-            )}
-
-            {type === 'tv' && media.networks?.length > 0 && (
-              <div>
-                <p className="font-bold text-black dark:text-white mb-2">Network</p>
-                <div className="bg-white rounded-md inline-block p-2">
-                  <Image 
-                    src={getImageUrl(media.networks[0].logo_path, 'w500')} 
-                    alt={media.networks[0].name}
-                    width={100}
-                    height={40}
-                    className="object-contain h-8 w-auto"
-                  />
-                </div>
+                 {media.homepage && (
+                   <div className="pt-2">
+                     <a href={media.homepage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-white/90 hover:text-white transition-colors font-semibold text-[14px]">
+                       <ExternalLink className="w-4 h-4" />
+                       Visit Homepage
+                     </a>
+                   </div>
+                 )}
               </div>
-            )}
+            </div>
+          </div>
 
-            {keywords.length > 0 && (
-              <div>
-                <p className="font-bold text-black dark:text-white mb-3">Keywords</p>
-                <div className="flex flex-wrap gap-2">
-                  {keywords.map((k: any) => (
-                    <span key={k.id} className="bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-300 px-3 py-1 rounded-md text-[13px] border border-gray-300 dark:border-gray-700">
-                      {k.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            
+          {/* RIGHT COLUMN - Main Info */}
+          <div className="lg:col-span-8 xl:col-span-9 order-1 lg:order-2">
+             
+             {/* Title */}
+             <h1 className="text-5xl md:text-7xl lg:text-[80px] font-bold tracking-tighter text-white mb-4 leading-[1.1] drop-shadow-2xl">
+               {title}
+             </h1>
+
+             {/* Tagline */}
+             {media.tagline && (
+               <p className="text-xl md:text-3xl font-light text-white/50 mb-8 italic drop-shadow-md">
+                 "{media.tagline}"
+               </p>
+             )}
+
+             {/* Badges / Metadata */}
+             <div className="flex flex-wrap items-center gap-3 mb-10">
+               <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md border border-white/5 px-4 py-1.5 rounded-full text-[15px] font-semibold text-white">
+                 <Star className="w-4 h-4 fill-current text-yellow-500" />
+                 <span>{score}</span>
+               </div>
+               
+               {year && (
+                 <div className="bg-white/5 backdrop-blur-md border border-white/5 px-4 py-1.5 rounded-full text-[15px] font-medium text-white/80">
+                   {year}
+                 </div>
+               )}
+               
+               {runtimeStr && (
+                 <div className="bg-white/5 backdrop-blur-md border border-white/5 px-4 py-1.5 rounded-full text-[15px] font-medium text-white/80">
+                   {runtimeStr}
+                 </div>
+               )}
+               
+               {type === 'tv' && media.number_of_seasons && (
+                 <div className="bg-white/5 backdrop-blur-md border border-white/5 px-4 py-1.5 rounded-full text-[15px] font-medium text-white/80">
+                   {media.number_of_seasons} Season{media.number_of_seasons !== 1 && 's'}
+                 </div>
+               )}
+             </div>
+
+             {/* Genres */}
+             {media.genres?.length > 0 && (
+               <div className="flex flex-wrap gap-2 mb-12">
+                 {media.genres.map((g: any) => (
+                   <span key={g.id} className="px-5 py-2 rounded-full border border-white/20 text-[14px] font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors cursor-default">
+                     {g.name}
+                   </span>
+                 ))}
+               </div>
+             )}
+
+             {/* Overview */}
+             <div className="mb-16">
+               <h3 className="text-[11px] font-bold tracking-widest uppercase text-white/40 mb-5">Synopsis</h3>
+               <p className="text-lg md:text-2xl text-white/80 leading-relaxed font-light max-w-4xl">
+                 {media.overview || 'No overview available.'}
+               </p>
+             </div>
+
+             {/* Directed / Created By */}
+             {keyPeople.length > 0 && (
+               <div className="mb-20">
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                   {keyPeople.map((person, idx) => (
+                     <div key={idx}>
+                       <p className="font-semibold text-white text-[17px] mb-1">{person.name}</p>
+                       <p className="text-[13px] text-white/40 uppercase tracking-wide font-medium">{person.jobs.join(', ')}</p>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
+
+             {/* Top Cast */}
+             {cast.length > 0 && (
+               <div className="mb-20">
+                 <h3 className="text-2xl font-bold text-white mb-8 tracking-tight">Top Cast</h3>
+                 <div className="flex gap-6 overflow-x-auto pb-8 snap-x -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar mask-fade-edges">
+                   {cast.map((actor: any) => (
+                     <div key={actor.id} className="w-[110px] shrink-0 snap-start group">
+                       <div className="w-[110px] h-[110px] rounded-full overflow-hidden bg-white/5 border border-white/10 mb-4 group-hover:border-white/30 transition-colors">
+                         {actor.profile_path ? (
+                           <Image src={getImageUrl(actor.profile_path, 'w500')} alt={actor.name} width={110} height={110} className="w-full h-full object-cover" />
+                         ) : (
+                           <div className="w-full h-full flex items-center justify-center text-white/20">
+                             <User className="w-8 h-8" />
+                           </div>
+                         )}
+                       </div>
+                       <div className="text-center">
+                         <p className="font-semibold text-[14px] text-white leading-tight line-clamp-1 mb-1">{actor.name}</p>
+                         <p className="text-[12px] text-white/50 line-clamp-2 leading-snug">{actor.character}</p>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
+
+             {/* Recommendations */}
+             {recommendations.length > 0 && (
+               <div>
+                 <h3 className="text-2xl font-bold text-white mb-8 tracking-tight">More Like This</h3>
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                   {recommendations.slice(0, 8).map((item: any) => (
+                     <div key={item.id}>
+                       <MovieCard movie={item} />
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
+
           </div>
         </div>
-
       </div>
     </main>
   );

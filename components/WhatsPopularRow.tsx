@@ -53,7 +53,7 @@ export default function WhatsPopularRow({
               onClick={() => setActiveTab(tab.id as TabType)}
               className={`px-4 py-1.5 text-[13px] sm:text-[14px] font-semibold rounded-full transition-all duration-300 whitespace-nowrap ${
                 activeTab === tab.id 
-                  ? 'bg-[#1ed5a9] text-[#0d253f] shadow-sm'
+                  ? 'bg-white text-black shadow-sm'
                   : 'text-white/70 hover:text-white'
               }`}
             >
