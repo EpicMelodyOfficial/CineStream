@@ -17,7 +17,18 @@ interface Media {
 export default function MovieCard({ movie }: { movie: Media }) {
   const title = movie.title || movie.name || 'Unknown';
   const dateStr = movie.release_date || movie.first_air_date;
-  const year = dateStr ? new Date(dateStr).getFullYear() : 'N/A';
+  
+  let formattedDate = '';
+  if (dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } else {
+      formattedDate = dateStr;
+    }
+  }
+
   const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
   const type = movie.media_type || (movie.name ? 'tv' : 'movie');
 
@@ -41,9 +52,9 @@ export default function MovieCard({ movie }: { movie: Media }) {
         <h3 className="line-clamp-1 text-[15px] font-semibold tracking-tight text-white transition-colors">
           {title}
         </h3>
-        <div className="flex items-center justify-between text-[13px] text-gray-400 font-medium">
-          <span>{year}</span>
-          <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between text-[14px] text-gray-400">
+          <span>{formattedDate}</span>
+          <div className="flex items-center gap-1 text-[13px] font-medium">
             <Star className="h-3.5 w-3.5 fill-current text-white" />
             <span>{rating}</span>
           </div>

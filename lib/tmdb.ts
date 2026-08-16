@@ -92,13 +92,13 @@ export async function getMediaVideos(id: string | number, type: 'movie' | 'tv' =
 export async function getMovieDetails(id: string) {
   // append_to_response allows us to fetch related data in a single request!
   return fetchTMDB(`/movie/${id}`, { 
-    append_to_response: 'reviews,watch/providers,credits' 
+    append_to_response: 'reviews,watch/providers,credits,recommendations,videos,keywords' 
   });
 }
 
 export async function getTVDetails(id: string) {
   return fetchTMDB(`/tv/${id}`, { 
-    append_to_response: 'reviews,watch/providers,credits' 
+    append_to_response: 'reviews,watch/providers,credits,recommendations,videos,keywords' 
   });
 }
 

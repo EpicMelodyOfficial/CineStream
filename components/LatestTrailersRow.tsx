@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Play } from 'lucide-react';
+import { Play, X } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
+import { fetchTrailerVideo } from '@/app/actions';
 
 export default function LatestTrailersRow({ 
   popular, 
@@ -21,6 +22,11 @@ export default function LatestTrailersRow({
   type TabType = 'popular' | 'streaming' | 'onTv' | 'forRent' | 'inTheaters';
   const [activeTab, setActiveTab] = useState<TabType>('popular');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  
+  // State for the video player modal
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+  const [isFetchingVideo, setIsFetchingVideo] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const getActiveItems = () => {
     switch (activeTab) {
@@ -35,6 +41,33 @@ export default function LatestTrailersRow({
 
   const activeItems = getActiveItems();
   const trailerItems = activeItems?.filter(item => item.backdrop_path).slice(0, 15) || [];
+
+  const handlePlayTrailer = async (item: any) => {
+    try {
+      setIsFetchingVideo(true);
+      setVideoError(null);
+      const type = item.media_type || (item.name ? 'tv' : 'movie');
+      const data = await fetchTrailerVideo(item.id, type);
+      
+      const videos = data.results || [];
+      // Prefer official trailers on YouTube
+      const trailer = videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official) 
+                   || videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
+                   || videos.find((v: any) => v.site === 'YouTube');
+                   
+      if (trailer) {
+        setPlayingVideoId(trailer.key);
+      } else {
+        setVideoError('No trailer available for this title.');
+        setTimeout(() => setVideoError(null), 3000);
+      }
+    } catch (err) {
+      setVideoError('Failed to load trailer.');
+      setTimeout(() => setVideoError(null), 3000);
+    } finally {
+      setIsFetchingVideo(false);
+    }
+  };
 
   if (trailerItems.length === 0) return null;
 
@@ -98,6 +131,7 @@ export default function LatestTrailersRow({
               className="snap-start shrink-0 w-[280px] sm:w-[320px] md:w-[360px] group cursor-pointer"
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
+              onClick={() => handlePlayTrailer(item)}
             >
               <div className="relative aspect-video rounded-xl overflow-hidden mb-3 shadow-[0_8px_20px_rgba(0,0,0,0.4)] group-hover:scale-105 transition-transform duration-300">
                 <Image
@@ -109,7 +143,11 @@ export default function LatestTrailersRow({
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                   <div className="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                    <Play className="w-6 h-6 text-white ml-1" fill="currentColor" />
+                    {isFetchingVideo && hoveredIndex === index ? (
+                      <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Play className="w-6 h-6 text-white ml-1" fill="currentColor" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -123,6 +161,43 @@ export default function LatestTrailersRow({
           ))}
         </div>
       </div>
+
+      {/* Video Error Message overlay */}
+      {videoError && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg z-[100] backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4">
+          {videoError}
+        </div>
+      )}
+
+      {/* Video Player Modal */}
+      {playingVideoId && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300"
+          onClick={() => setPlayingVideoId(null)}
+        >
+          <div 
+            className="w-full max-w-5xl aspect-video relative bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
+            onClick={e => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setPlayingVideoId(null)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors backdrop-blur-sm"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <iframe
+              width="100%"
+              height="100%"
+              src={`https://www.youtube.com/embed/${playingVideoId}?autoplay=1&rel=0&showinfo=0`}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="w-full h-full"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
