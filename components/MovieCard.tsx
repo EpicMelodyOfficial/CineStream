@@ -15,7 +15,9 @@ interface Media {
 }
 
 export default function MovieCard({ movie }: { movie: Media }) {
-  const title = movie.title || movie.name || 'Unknown';
+  if (!movie || !movie.id || movie.media_type === 'person') return null;
+
+  const title = movie.title || movie.name || 'Untitled';
   const dateStr = movie.release_date || movie.first_air_date;
   
   let formattedDate = '';
@@ -23,17 +25,16 @@ export default function MovieCard({ movie }: { movie: Media }) {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
       const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      if (!isNaN(date.getTime())) {
+        formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
     } else {
       formattedDate = dateStr;
     }
   }
 
-  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'NR';
+  const rating = typeof movie.vote_average === 'number' && movie.vote_average > 0 ? movie.vote_average.toFixed(1) : 'NR';
   const type = movie.media_type || (movie.name ? 'tv' : 'movie');
-
-  // Do not render people
-  if (movie.media_type === 'person') return null;
 
   return (
     <Link href={`/${type}/${movie.id}`} className="group flex flex-col gap-3">

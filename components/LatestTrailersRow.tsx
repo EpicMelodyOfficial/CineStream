@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Play, X } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
@@ -25,8 +25,28 @@ export default function LatestTrailersRow({
   
   // State for the video player modal
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
-  const [isFetchingVideo, setIsFetchingVideo] = useState(false);
+  const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+
+  // Close modal on Escape key & lock body scroll
+  useEffect(() => {
+    if (!playingVideoId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPlayingVideoId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [playingVideoId]);
 
   const getActiveItems = () => {
     switch (activeTab) {
@@ -40,32 +60,33 @@ export default function LatestTrailersRow({
   };
 
   const activeItems = getActiveItems();
-  const trailerItems = activeItems?.filter(item => item.backdrop_path).slice(0, 15) || [];
+  const trailerItems = activeItems?.filter(item => item && item.backdrop_path).slice(0, 15) || [];
 
   const handlePlayTrailer = async (item: any) => {
+    if (!item || !item.id) return;
     try {
-      setIsFetchingVideo(true);
+      setLoadingItemId(item.id);
       setVideoError(null);
       const type = item.media_type || (item.name ? 'tv' : 'movie');
       const data = await fetchTrailerVideo(item.id, type);
       
-      const videos = data.results || [];
+      const videos = data?.results || [];
       // Prefer official trailers on YouTube
-      const trailer = videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official) 
-                   || videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
-                   || videos.find((v: any) => v.site === 'YouTube');
+      const trailer = videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official && v.key) 
+                   || videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.key)
+                   || videos.find((v: any) => v.site === 'YouTube' && v.key);
                    
-      if (trailer) {
+      if (trailer && trailer.key) {
         setPlayingVideoId(trailer.key);
       } else {
         setVideoError('No trailer available for this title.');
-        setTimeout(() => setVideoError(null), 3000);
+        setTimeout(() => setVideoError(null), 3500);
       }
-    } catch (err) {
+    } catch {
       setVideoError('Failed to load trailer.');
-      setTimeout(() => setVideoError(null), 3000);
+      setTimeout(() => setVideoError(null), 3500);
     } finally {
-      setIsFetchingVideo(false);
+      setLoadingItemId(null);
     }
   };
 
@@ -138,14 +159,14 @@ export default function LatestTrailersRow({
               <div className="relative aspect-video rounded-xl overflow-hidden mb-3 shadow-[0_8px_20px_rgba(0,0,0,0.4)] group-hover:scale-105 transition-transform duration-300">
                 <Image
                   src={getImageUrl(item.backdrop_path, 'w500')}
-                  alt={item.title || item.name}
+                  alt={item.title || item.name || 'Movie Trailer'}
                   fill
                   className="object-cover"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                   <div className="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                    {isFetchingVideo && hoveredIndex === index ? (
+                    {loadingItemId === item.id ? (
                       <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin" />
                     ) : (
                       <Play className="w-6 h-6 text-white ml-1" fill="currentColor" />
@@ -166,7 +187,7 @@ export default function LatestTrailersRow({
 
       {/* Video Error Message overlay */}
       {videoError && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg z-[100] backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600/90 text-white px-5 py-2.5 rounded-full shadow-2xl z-[110] backdrop-blur-md text-sm font-medium border border-red-500/30 animate-in fade-in slide-in-from-bottom-4">
           {videoError}
         </div>
       )}
@@ -184,6 +205,7 @@ export default function LatestTrailersRow({
             <button 
               onClick={() => setPlayingVideoId(null)}
               className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors backdrop-blur-sm"
+              aria-label="Close trailer modal"
             >
               <X className="w-6 h-6" />
             </button>
@@ -203,3 +225,4 @@ export default function LatestTrailersRow({
     </div>
   );
 }
+

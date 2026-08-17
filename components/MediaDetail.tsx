@@ -7,9 +7,17 @@ import MovieCard from './MovieCard';
 import TVSeasons from './TVSeasons';
 
 export default function MediaDetail({ media, type }: { media: any, type: 'movie' | 'tv' }) {
-  const title = type === 'movie' ? media.title : media.name;
+  if (!media) return null;
+
+  const title = (type === 'movie' ? media.title : media.name) || 'Untitled';
   const releaseDateStr = type === 'movie' ? media.release_date : media.first_air_date;
-  const year = releaseDateStr ? new Date(releaseDateStr).getFullYear() : '';
+  let year = '';
+  if (releaseDateStr) {
+    const parsedDate = new Date(releaseDateStr);
+    if (!isNaN(parsedDate.getTime())) {
+      year = String(parsedDate.getFullYear());
+    }
+  }
 
   // Runtime
   const runtime = type === 'movie' ? media.runtime : (media.episode_run_time?.[0] || 0);
@@ -18,7 +26,7 @@ export default function MediaDetail({ media, type }: { media: any, type: 'movie'
   const runtimeStr = runtime > 0 ? `${runtimeHours > 0 ? `${runtimeHours}h ` : ''}${runtimeMins}m` : '';
 
   // User Score (e.g., 8.5)
-  const score = media.vote_average ? media.vote_average.toFixed(1) : 'NR';
+  const score = typeof media.vote_average === 'number' && media.vote_average > 0 ? media.vote_average.toFixed(1) : 'NR';
 
   // Crew (Directors or Creators)
   let keyPeople: { name: string; jobs: string[] }[] = [];
@@ -163,9 +171,13 @@ export default function MediaDetail({ media, type }: { media: any, type: 'movie'
                  {type === 'tv' && media.networks?.length > 0 && (
                    <div>
                      <p className="text-white/40 text-[11px] font-bold uppercase tracking-widest mb-3">Network</p>
-                     <div className="bg-white p-2 rounded-lg inline-block">
-                       <Image src={getImageUrl(media.networks[0].logo_path, 'w500')} alt={media.networks[0].name} width={80} height={30} className="object-contain h-6 w-auto" />
-                     </div>
+                     {media.networks[0].logo_path ? (
+                       <div className="bg-white p-2 rounded-lg inline-block">
+                         <Image src={getImageUrl(media.networks[0].logo_path, 'w500')} alt={media.networks[0].name || 'Network'} width={80} height={30} className="object-contain h-6 w-auto" />
+                       </div>
+                     ) : (
+                       <p className="font-medium text-white/90 text-[15px]">{media.networks[0].name}</p>
+                     )}
                    </div>
                  )}
 
@@ -192,7 +204,7 @@ export default function MediaDetail({ media, type }: { media: any, type: 'movie'
              {/* Tagline */}
              {media.tagline && (
                <p className="text-xl md:text-3xl font-light text-white/50 mb-8 italic drop-shadow-md">
-                 "{media.tagline}"
+                 &ldquo;{media.tagline}&rdquo;
                </p>
              )}
 

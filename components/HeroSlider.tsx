@@ -13,10 +13,8 @@ const GENRE_MAP: Record<number, string> = {
 
 export default function HeroSlider({ items }: { items: any[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
     if (!items || items.length === 0) return;
 
     const interval = setInterval(() => {
@@ -45,7 +43,9 @@ export default function HeroSlider({ items }: { items: any[] }) {
           const parts = dateStr.split('-');
           if (parts.length === 3) {
             const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            if (!isNaN(date.getTime())) {
+              formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
           } else {
             formattedDate = dateStr;
           }
@@ -60,7 +60,7 @@ export default function HeroSlider({ items }: { items: any[] }) {
           <div
             key={item.id}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              isActive && isMounted ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
             }`}
             aria-hidden={!isActive}
           >
@@ -88,7 +88,7 @@ export default function HeroSlider({ items }: { items: any[] }) {
             <div className="absolute inset-0 flex flex-col justify-end p-6 sm:px-8 md:px-12 lg:px-[max(5%,calc((100vw-1400px)/2+32px))] pb-16 md:pb-24 w-full md:w-3/4 lg:w-2/3 pointer-events-none">
               <div
                 className={`transition-all duration-1000 transform pointer-events-auto ${
-                  isActive && isMounted ? 'translate-y-0 opacity-100 delay-300' : 'translate-y-8 opacity-0'
+                  isActive ? 'translate-y-0 opacity-100 delay-300' : 'translate-y-8 opacity-0'
                 }`}
               >
                 {/* Title or Logo */}

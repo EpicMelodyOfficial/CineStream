@@ -57,7 +57,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
       const data = await searchMedia(query);
       searchResults = data?.results || [];
     } else {
-      const [popMoviesData, nowPlayingData, popTVData, trendingTodayData, trendingWeekData, onTheAirData, streamingData, forRentData, freeMoviesData, freeTvData] = await Promise.all([
+      const settled = await Promise.allSettled([
         getPopularMovies(),
         getNowPlayingMovies(),
         getPopularTVShows(),
@@ -69,16 +69,25 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
         getFreeMovies(),
         getFreeTVShows()
       ]);
-      popularMovies = popMoviesData?.results || [];
-      nowPlaying = nowPlayingData?.results || [];
-      popularTVShows = popTVData?.results || [];
-      trendingToday = trendingTodayData?.results || [];
-      trendingWeek = trendingWeekData?.results || [];
-      onTheAir = onTheAirData?.results || [];
-      streaming = streamingData?.results || [];
-      forRent = forRentData?.results || [];
-      freeMovies = freeMoviesData?.results || [];
-      freeTv = freeTvData?.results || [];
+
+      const getResults = (res: PromiseSettledResult<any>) => (res.status === 'fulfilled' ? res.value?.results || [] : []);
+
+      popularMovies = getResults(settled[0]);
+      nowPlaying = getResults(settled[1]);
+      popularTVShows = getResults(settled[2]);
+      trendingToday = getResults(settled[3]);
+      trendingWeek = getResults(settled[4]);
+      onTheAir = getResults(settled[5]);
+      streaming = getResults(settled[6]);
+      forRent = getResults(settled[7]);
+      freeMovies = getResults(settled[8]);
+      freeTv = getResults(settled[9]);
+
+      const allFailed = settled.every((r) => r.status === 'rejected');
+      if (allFailed) {
+        const firstErr: any = settled[0].status === 'rejected' ? settled[0].reason : null;
+        errorMsg = firstErr instanceof TMDBError ? firstErr.message : "Failed to fetch media from TMDB.";
+      }
 
       // Fetch logos for top 5 nowPlaying items for the Hero Slider
       const top5NowPlaying = nowPlaying.filter((m: any) => m.backdrop_path).slice(0, 5);
@@ -91,24 +100,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
             const enLogo = images.logos.find((l: any) => l.iso_639_1 === 'en');
             item.logo_path = (enLogo || images.logos[0]).file_path;
           }
-        } catch (e) {
+        } catch {
           // Ignore if logo fetch fails
         }
       }));
     }
   } catch (err: any) {
     errorMsg = err instanceof TMDBError ? err.message : "Failed to fetch media.";
-  }
-
-  // Get a random backdrop from the highest profile available list
-  let randomBackdrop = null;
-  const backdropSource = query ? searchResults : nowPlaying;
-  if (backdropSource.length > 0) {
-    const validMovies = backdropSource.filter((m: any) => m.backdrop_path);
-    if (validMovies.length > 0) {
-      const randomIndex = Math.floor(Math.random() * Math.min(10, validMovies.length));
-      randomBackdrop = validMovies[randomIndex].backdrop_path;
-    }
   }
 
   return (
@@ -138,7 +136,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
             <div className="space-y-8 mb-24">
               <div className="flex items-center justify-between pb-4 border-b border-white/10">
                 <h2 className="text-2xl font-bold tracking-tight text-white drop-shadow-sm">
-                  Search Results for "{query}"
+                  Search Results for &ldquo;{query}&rdquo;
                 </h2>
               </div>
               

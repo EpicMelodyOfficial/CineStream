@@ -1,17 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, X } from 'lucide-react';
 
 export default function PlayTrailerButton({ videos }: { videos: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Find best trailer
-  const trailer = videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official) 
-               || videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
-               || videos.find((v: any) => v.site === 'YouTube');
+  useEffect(() => {
+    if (!isOpen) return;
 
-  if (!trailer) return null;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  if (!videos || !Array.isArray(videos)) return null;
+
+  // Find best trailer
+  const trailer = videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official && v.key) 
+               || videos.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.key)
+               || videos.find((v: any) => v.site === 'YouTube' && v.key);
+
+  if (!trailer || !trailer.key) return null;
 
   return (
     <>
@@ -35,6 +56,7 @@ export default function PlayTrailerButton({ videos }: { videos: any[] }) {
             <button 
               onClick={() => setIsOpen(false)}
               className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors backdrop-blur-sm"
+              aria-label="Close trailer modal"
             >
               <X className="w-6 h-6" />
             </button>
@@ -54,3 +76,4 @@ export default function PlayTrailerButton({ videos }: { videos: any[] }) {
     </>
   );
 }
+
